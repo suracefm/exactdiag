@@ -46,7 +46,11 @@ def clock(dim_loc, L):
         return kick
 
     def Z(initial_state, final_state, i, time_set, **kwargs):
-            return expect_val(Sigma[-1][i], initial_state)*\
+            Zval=expect_val(Sigma[-1][i], initial_state)*\
                  expect_val(Sigma[0][i],final_state)\
                  *np.exp(-1j*2*np.pi*(time_set%dim_loc)/dim_loc)
+            Znew=expect_val(Sigma[1][i], initial_state)*\
+                 expect_val(Sigma[1][i],final_state)\
+                 *np.exp(-1j*4*np.pi*(time_set%dim_loc)/dim_loc)
+            return Zval, Znew
     return buildH, buildK, Z
