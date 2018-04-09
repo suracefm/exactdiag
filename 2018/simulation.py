@@ -5,8 +5,9 @@ import time
 from random import randint
 from operators import *
 from spectrum_analysis import *
-from io import *
+from myio import *
 from hamiltonians import *
+from ipr import *
 import sys
 
 
@@ -61,3 +62,36 @@ def simulation(dim_loc, L, n_dis, data, Hfunc, Kfunc, Zfunc, time_set, EVOLVEZ=T
     spectral_data=np.mean(spectral_matrix, axis=0)
     spectral_data_var=np.var(spectral_matrix, axis=0) #not really the variance!!!!
     return Z_mean, Z_var, Znew_mean, Znew_var, spectral_data, spectral_data_var
+
+def IPR(dim_loc, L, n_dis, datavec, Hfunc, Kfunc):
+    dim=dim_loc**L
+    IPR_step_vec=np.zeros(len(datavec))
+    IPR_tot_vec=np.zeros(len(datavec))
+
+
+    # Disorder cycle
+    for counter in range(n_dis):
+        start = time.time()
+        JZZ_array = datavec[0]['JZZ']*(1/2+np.random.rand(L))
+        hZ_array = datavec[0]['hZ']*(np.random.rand(L))
+        hX_array = datavec[0]['hX']*(np.random.rand(L))
+        kick = Kfunc(**datavec[0])
+        for dcount, data in enumerate(datavec):
+            H = Hfunc(**data, JZZ_array=JZZ_array, hZ_array=hZ_array, hX_array=hX_array)
+            U_F = np.dot(la.expm(-1j*H),kick)
+            eigval, eigvec = np.linalg.eig(U_F)
+            if dcount==0:
+                eigvec0=eigvec
+                eigvec_old=eigvec
+            else:
+                eigvec, IPR_step =rearrange(eigvec,eigvec_old)
+                IPR_step_vec[dcount]+=IPR_step
+                IPR_tot=IPR_func(eigvec, eigvec0)
+                IPR_tot_vec[dcount]+=IPR_tot
+                eigvec_old=eigvec
+
+
+        elapsed = time.time()-start
+        print('size', L, '\tdisorder realization', counter,'\ttime elapsed', elapsed)
+
+    return IPR_step_vec/n_dis, IPR_tot_vec/n_dis

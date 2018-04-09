@@ -20,22 +20,32 @@ def clock(dim_loc, L):
 
 
     # Build Hamiltonian
-    Sigma = np.empty((dim_loc-1, L, dim, dim), dtype=complex) # m, site, row, column
-    Tau = np.empty((dim_loc-1, L, dim, dim), dtype=complex) # m, site, row, column
-    Walls = np.empty((dim_loc-1, L, dim, dim), dtype=complex) # m, site, row, column
-    for m, site in itertools.product(range(dim_loc-1), range(L)):
-        Sigma[m, site] = one_site_op(sigma_m[m], site, L).toarray()
-        Tau[m, site] = one_site_op(tau_m[m], site, L).toarray()
-        Walls[m, site] = two_site_op(sigma_m[-m-1], sigma_m[m], site, site+1, L).toarray()
+#    Sigma = np.empty((dim_loc-1, L, dim, dim), dtype=complex) # m, site, row, column
+#    Tau = np.empty((dim_loc-1, L, dim, dim), dtype=complex) # m, site, row, column
+#    Walls = np.empty((dim_loc-1, L, dim, dim), dtype=complex) # m, site, row, column
+#    for m, site in itertools.product(range(dim_loc-1), range(L)):
+#        Sigma[m, site] = one_site_op(sigma_m[m], site, L).toarray()
+#        Tau[m, site] = one_site_op(tau_m[m], site, L).toarray()
+#        Walls[m, site] = two_site_op(sigma_m[-m-1], sigma_m[m], site, site+1, L).toarray()
 
     def buildH(JZZ, hZ, hX, alphas, betas, lambdas, **kwargs):
-        JZZ_array = JZZ*(1/2+np.random.rand(L))
-        hZ_array = hZ*(np.random.rand(L))
-        hX_array = hX*(np.random.rand(L))
-        interaction = np.tensordot(JZZ_array, np.tensordot(alphas, Walls, (0,0)), (0,0))
-        x_field = np.tensordot(hX_array, np.tensordot(betas, Tau, (0,0)), (0,0))
-        z_field = np.tensordot(hZ_array, np.tensordot(lambdas, Sigma, (0,0)), (0,0))
-        Hamiltonian=interaction+x_field+z_field
+        if "JZZ_array" not in kwargs:
+            JZZ_array = JZZ*(1/2+np.random.rand(L))
+        else: JZZ_array=kwargs['JZZ_array']
+        if "hZ_array" not in kwargs:
+            hZ_array = hZ*(np.random.rand(L))
+        else: hZ_array=kwargs['hZ_array']
+        if "hX_array" not in kwargs:
+            hX_array = hX*(np.random.rand(L))
+        else: hX_array=kwargs['hX_array']
+        Hamiltonian = np.zeros((dim, dim), dtype=complex)
+        for m, site in itertools.product(range(dim_loc-1), range(L)):
+                Hamiltonian=Hamiltonian+JZZ_array[site]*alphas[m]*two_site_op(sigma_m[-m-1], sigma_m[m], site, site+1, L).toarray()
+                Hamiltonian=Hamiltonian+hX_array[site]*betas[m]*one_site_op(tau_m[m], site, L).toarray()
+                Hamiltonian=Hamiltonian+hZ_array[site]*lambdas[m]*one_site_op(sigma_m[m], site, L).toarray()
+        #interaction = np.tensordot(JZZ_array, np.tensordot(alphas, Walls, (0,0)), (0,0))
+        #x_field = np.tensordot(hX_array, np.tensordot(betas, Tau, (0,0)), (0,0))
+        #z_field = np.tensordot(hZ_array, np.tensordot(lambdas, Sigma, (0,0)), (0,0))
         return Hamiltonian
 
     def buildK(**kwargs):
@@ -46,11 +56,11 @@ def clock(dim_loc, L):
         return kick
 
     def Z(initial_state, final_state, i, time_set, **kwargs):
-            Zval=expect_val(Sigma[-1][i], initial_state)*\
-                 expect_val(Sigma[0][i],final_state)\
+            Zval=expect_val(one_site_op(sigma_m[-1], i, L).toarray(), initial_state)*\
+                 expect_val(one_site_op(sigma_m[0], i, L).toarray(),final_state)\
                  *np.exp(-1j*2*np.pi*(time_set%dim_loc)/dim_loc)
-            Znew=expect_val(Sigma[1][i], initial_state)*\
-                 expect_val(Sigma[1][i],final_state)\
+            Znew=expect_val(one_site_op(sigma_m[1], i, L).toarray(), initial_state)*\
+                 expect_val(one_site_op(sigma_m[1], i, L).toarray(),final_state)\
                  *np.exp(-1j*4*np.pi*(time_set%dim_loc)/dim_loc)
             return Zval, Znew
     return buildH, buildK, Z
