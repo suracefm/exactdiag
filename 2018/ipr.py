@@ -13,5 +13,12 @@ def rearrange(eignew, eigold):
         i+=1
     return eignew, IPR
 
-def IPR_func(eigold, eignew):
+def IPR_func(eignew, eigold):
     return np.mean(np.abs(np.sum(np.conj(eigold)*eignew, axis=0))**4)
+
+def sum_IPR(eignew, eigold):
+    dim=len(eigold)
+    sIPR=0
+    for i in range(dim):
+        sIPR+=IPR_func(np.roll(eigold, i, axis=1), eignew)
+    return sIPR

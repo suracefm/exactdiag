@@ -11,13 +11,14 @@ from ipr import *
 import sys
 
 
-def simulation(dim_loc, L, n_dis, data, Hfunc, Kfunc, Zfunc, time_set, EVOLVEZ=True):
+def simulation(dim_loc, L, n_dis, data, Hfunc, Kfunc, Zfunc=None, time_set=None):
     dim=dim_loc**L
 
     # Setting cycle
-    steps=len(time_set)
-    Z=np.zeros((n_dis, L, steps), dtype=complex)
-    Znew=np.zeros((n_dis, L, steps), dtype=complex)
+    if time_set is not None:
+        steps=len(time_set)
+        Z=np.zeros((n_dis, L, steps), dtype=complex)
+        Znew=np.zeros((n_dis, L, steps), dtype=complex)
     spectral_matrix= np.zeros((n_dis, 7))
 
     # Disorder cycle
@@ -42,7 +43,7 @@ def simulation(dim_loc, L, n_dis, data, Hfunc, Kfunc, Zfunc, time_set, EVOLVEZ=T
          np.mean(shifted_gaps_2), np.mean(log10_gaps), np.mean(log10_shifted_gaps),\
          np.mean(log10_shifted_gaps_2), r ])
 
-        if EVOLVEZ:
+        if time_set is not None:
             #Initial state
             initial_state = np.zeros(dim)
             initial_state[randint(0, dim-1)] = 1
@@ -55,10 +56,16 @@ def simulation(dim_loc, L, n_dis, data, Hfunc, Kfunc, Zfunc, time_set, EVOLVEZ=T
         elapsed = time.time()-start
         print('size', L, '\tdisorder realization', counter,'\ttime elapsed', elapsed)
 
-    Z_mean=np.mean(Z, axis=(0,1))
-    Z_var=np.var(Z, axis=(0,1))
-    Znew_mean=np.mean(Znew, axis=(0,1))
-    Znew_var=np.var(Znew, axis=(0,1))
+    if time_set is not None:
+        Z_mean=np.mean(Z, axis=(0,1))
+        Z_var=np.var(Z, axis=(0,1))
+        Znew_mean=np.mean(Znew, axis=(0,1))
+        Znew_var=np.var(Znew, axis=(0,1))
+    else:
+        Z_mean=0
+        Z_var=0
+        Znew_mean=0
+        Znew_var=0
     spectral_data=np.mean(spectral_matrix, axis=0)
     spectral_data_var=np.var(spectral_matrix, axis=0) #not really the variance!!!!
     return Z_mean, Z_var, Znew_mean, Znew_var, spectral_data, spectral_data_var
@@ -67,6 +74,8 @@ def IPR(dim_loc, L, n_dis, datavec, Hfunc, Kfunc):
     dim=dim_loc**L
     IPR_step_vec=np.zeros(len(datavec))
     IPR_tot_vec=np.zeros(len(datavec))
+    IPR_sum_step_vec=np.zeros(len(datavec))
+    IPR_sum_tot_vec=np.zeros(len(datavec))
 
 
     # Disorder cycle
@@ -86,12 +95,13 @@ def IPR(dim_loc, L, n_dis, datavec, Hfunc, Kfunc):
             else:
                 eigvec, IPR_step =rearrange(eigvec,eigvec_old)
                 IPR_step_vec[dcount]+=IPR_step
-                IPR_tot=IPR_func(eigvec, eigvec0)
-                IPR_tot_vec[dcount]+=IPR_tot
+                IPR_tot_vec[dcount]+=IPR_func(eigvec, eigvec0)
+                IPR_sum_step_vec[dcount]+=sum_IPR(eigvec, eigvec_old)
+                IPR_sum_tot_vec[dcount]+=sum_IPR(eigvec, eigvec0)
                 eigvec_old=eigvec
 
 
         elapsed = time.time()-start
         print('size', L, '\tdisorder realization', counter,'\ttime elapsed', elapsed)
 
-    return IPR_step_vec/n_dis, IPR_tot_vec/n_dis
+    return IPR_step_vec/n_dis, IPR_tot_vec/n_dis, IPR_sum_step_vec/n_dis, IPR_sum_tot_vec/n_dis
