@@ -1,18 +1,13 @@
 import numpy as np
-from scipy import sparse
-import scipy.sparse.linalg as la
 from functools import reduce
 
-
-FORMAT='csc'
-
 def mult_kron(matrices, sparse_format=None):
-    return reduce((lambda x, y: sparse.kron(x,y, format=FORMAT)), matrices)
+    return reduce((lambda x, y: np.kron(x,y)), matrices)
 
 def one_site_op(matrix, i, L):
     dim_loc=np.shape(matrix)[0]
-    i_left = sparse.eye(dim_loc**(i))
-    i_right = sparse.eye(dim_loc**(L-i-1))
+    i_left = np.eye(dim_loc**(i))
+    i_right = np.eye(dim_loc**(L-i-1))
     return mult_kron([i_left, matrix, i_right])
 
 def two_site_op(matrix_i, matrix_j, i, j, L):
@@ -22,9 +17,9 @@ def two_site_op(matrix_i, matrix_j, i, j, L):
         i,j=j,i
         matrix_i, matrix_j = matrix_j, matrix_i
     dim_loc=np.shape(matrix_i)[0]
-    i_left = sparse.eye(dim_loc**(i))
-    i_center = sparse.eye(dim_loc**(j-i-1))
-    i_right = sparse.eye(dim_loc**(L-j-1))
+    i_left = np.eye(dim_loc**(i))
+    i_center = np.eye(dim_loc**(j-i-1))
+    i_right = np.eye(dim_loc**(L-j-1))
     return mult_kron([i_left, matrix_i, i_center, matrix_j, i_right])
 
 def normalize(vector):

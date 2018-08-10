@@ -11,14 +11,14 @@ from ipr import *
 import sys
 
 
-def simulation(dim_loc, L, n_dis, data, Hfunc, Kfunc, Zfunc=None, time_set=None):
+def simulation(dim_loc, L, n_dis,  data, Hfunc, Kfunc, Zfunc=None, initial_state=None, time_set=None):
     dim=dim_loc**L
 
     # Setting cycle
     if time_set is not None:
         steps=len(time_set)
         Z=np.zeros((n_dis, L, steps), dtype=complex)
-        Znew=np.zeros((n_dis, L, steps), dtype=complex)
+        #Znew=np.zeros((n_dis, L, steps), dtype=complex)
     spectral_matrix= np.zeros((n_dis, 7))
 
     # Disorder cycle
@@ -45,30 +45,30 @@ def simulation(dim_loc, L, n_dis, data, Hfunc, Kfunc, Zfunc=None, time_set=None)
 
         if time_set is not None:
             #Initial state
-            initial_state = np.zeros(dim)
-            initial_state[randint(0, dim-1)] = 1
+            if initial_state is None:
+                initial_state = np.zeros(dim)
+                initial_state[randint(0, dim-1)] = 1
 
             final_state = evolve(time_set, initial_state, eigvec, eigval)
 
             for i in range(L):
-             Z[counter, i], Znew[counter, i] = Zfunc(initial_state, final_state, i, time_set, **data)
+             Z[counter, i] = Zfunc(initial_state, final_state, i, time_set, **data)
 
         elapsed = time.time()-start
         print('size', L, '\tdisorder realization', counter,'\ttime elapsed', elapsed)
-
     if time_set is not None:
         Z_mean=np.mean(Z, axis=(0,1))
         Z_var=np.var(Z, axis=(0,1))
-        Znew_mean=np.mean(Znew, axis=(0,1))
-        Znew_var=np.var(Znew, axis=(0,1))
+        #Znew_mean=np.mean(Znew, axis=(0,1))
+        #Znew_var=np.var(Znew, axis=(0,1))
     else:
         Z_mean=0
         Z_var=0
-        Znew_mean=0
-        Znew_var=0
+        #Znew_mean=0
+        #Znew_var=0
     spectral_data=np.mean(spectral_matrix, axis=0)
     spectral_data_var=np.var(spectral_matrix, axis=0) #not really the variance!!!!
-    return Z_mean, Z_var, Znew_mean, Znew_var, spectral_data, spectral_data_var
+    return Z_mean, Z_var, spectral_data, spectral_data_var
 
 def IPR(dim_loc, L, n_dis, datavec, Hfunc, Kfunc):
     dim=dim_loc**L
